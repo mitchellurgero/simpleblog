@@ -11,6 +11,9 @@ if(isset($_POST['user'])){
 		echo 'Failed DB Creation.. Could not create DB folder structure.'."<br>";
 		die();
 	}
+	if($db->check_table("users")){
+		die("You cannot add a new user through the install.php script!");
+	}
 	if($db->create_table("posts")){
 		echo 'Created posts table successfully.'."<br>";
 	} else {
