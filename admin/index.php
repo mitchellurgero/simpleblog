@@ -3,7 +3,7 @@ session_start();
 include('../config.php');
 include('../db.php');
 if(file_exists("../install.php")){
-	//die("You must install SimpleBlog and Remove install.php to login to the admin panel!");
+	die("You must install SimpleBlog and Remove install.php to login to the admin panel!");
 }
 if(isset($_POST['user'])){
 	//Check login.
