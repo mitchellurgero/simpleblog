@@ -11,7 +11,7 @@ select("TABLE_NAME", "WHERE" = null, "EQUALS" = null);//get data from selected r
 create_table("TABLE_NAME");//Create a new table with the given name.
 delete_table("TABLE_NAME");//Delete the given table.
 dump_tables();//Dump all tables AND their data (Mostly for backup purposes.)
-check_table("TABLE_NAME");//Check if a table exists.
+check_table("TABLE_NAME");//Check if a table exists. Returns number of rows if exists
 list_tables();//List all available tables in selected database.
 import("JSON_STRING_OF_DB_BACKUP");//import a database backup and restore into the given database.
 
@@ -30,12 +30,11 @@ $db->functionName(options);
 */
 class JSONDatabase {
 	public $db = '';
-	
 	function __construct($dbf = null, $dbd = null){
 		if($dbf !== null){
-			self::init($dbf, $dbd);
+			return self::init($dbf, $dbd);
 		}
-		return true;
+		return false;
 	}
 	public function init($dbf, $dbd = null){
 		if($dbd !== null){
@@ -58,6 +57,7 @@ class JSONDatabase {
 			$this->db = $dbf;
 			return true;
 		}
+		return false;
 	}
 	public function insert($table, $data, $row = null){
 		//Insert row into table at specified int/string.
@@ -75,7 +75,6 @@ class JSONDatabase {
 			}
 			file_put_contents($this->db."/tables/$table/$num/".$key, $value);
 		}
-		return true;
 	}
 	public function select($table, $where = null, $equals = null){
 		//Get data of row.
@@ -93,7 +92,7 @@ class JSONDatabase {
 			}
 		}
 		$rows = glob($this->db."/tables/$table" . '/*' , GLOB_ONLYDIR);
-		$data;
+		$data = array();
 		$i = 0;
 		if($equals === null && $where === null){
 			//Return all the rows :D
@@ -145,7 +144,7 @@ class JSONDatabase {
 			self::deleteDir($this->db."/tables/$table");
 			return true;
 		} else {
-			return "What happened...?";
+			return false;
 		}
 	}
 	public function dump_tables(){
@@ -183,12 +182,12 @@ class JSONDatabase {
 		if (!file_exists($this->db."/tables/$table")){
 			return false;
 		} else {
-			return true;
+			return count(glob($this->db."/tables/$table" , GLOB_ONLYDIR));
 		}
 	}
 	public function delete_row($table, $row){
 		//Duh
-		//Duh
+		//Doesn't exactly work properly yet.
 		if (!file_exists($this->db."/tables/$table")) {
 			return false; //Folder not there.
 		} else if($table === null) {
@@ -204,14 +203,22 @@ class JSONDatabase {
 			}else if(file_exists($this->db."/tables/$table/$row")){
 				//Open db.
 				self::deleteDir($this->db."/tables/$table/$row");
+				
+				$rows = glob($this->db."/tables/$table" . '/*' , GLOB_ONLYDIR);
+				foreach($rows as $r){
+					$r = basename($r);
+					if($r > $row){
+						rename($this->db."/tables/$table/$r", $this->db."/tables/$table/".$r - 1);
+					}
+				}
 				return true;
 			} else {
-				return "What happened...?";
+				return false;
 			}
-			return true;
 		} else {
-			return "What happened...?";
+			return false;
 		}
+		return false;
 	}
 	public function clean($table){
 		//Cleans table of blank rows. Keeps shit tidy.
