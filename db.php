@@ -1,7 +1,7 @@
 <?php
 /*
 JSONDatabase class written by Mitchell Urgero <info@urgero.org>
-GitHub: https://github.com/mitchellugero/jsondatabase
+GitHub: https://github.com/mitchellurgero/jsondatabase
 ===============================================================
 This DB class supports the following functions:
 
@@ -70,14 +70,25 @@ class JSONDatabase {
 		}
 		$d = json_decode($data,true);
 		foreach($d as $key=>$value){
+			if($key == "row_id"){ continue;}
 			if(!file_exists($this->db."/tables/$table/$num")){
 				mkdir($this->db."/tables/$table/$num",0777, true);
 			}
 			file_put_contents($this->db."/tables/$table/$num/".$key, $value);
 		}
+		return $num;
 	}
-	public function select($table, $where = null, $equals = null){
+	public function select($table, $where = null, $equals = null, $invert = true){
 		//Get data of row.
+		if(is_int($where) && is_int($equals)){
+			//We are pagenating, need to get all rows between the rows.
+			$range = range($where, $equals);
+			$rangeReturn = array();
+			foreach($range as $r){
+				$rangeReturn[$r] = self::select($table,"row_id",$r)[$r];
+			}
+			return $rangeReturn;
+		}
 		if($where == "row_id"){
 			if(file_exists($this->db."/tables/$table/".$equals)){
 				$dbd = glob($this->db."/tables/$table/".$equals."/*");
@@ -92,6 +103,9 @@ class JSONDatabase {
 			}
 		}
 		$rows = glob($this->db."/tables/$table" . '/*' , GLOB_ONLYDIR);
+		if($invert){
+			$rows = array_reverse($rows);
+		}
 		$data = array();
 		$i = 0;
 		if($equals === null && $where === null){
@@ -110,7 +124,12 @@ class JSONDatabase {
 		}
 		foreach($rows as $row){
 			//Return only rows that contain the search query.
-			$t1 = file_get_contents($this->db."/tables/$table/".basename($row)."/$where");
+			$t1 = "";
+			if(file_exists($this->db."/tables/$table/".basename($row)."/$where")){
+				$t1 = file_get_contents($this->db."/tables/$table/".basename($row)."/$where");
+			} else {
+				continue;
+			}
 			if($t1 == $equals){
 				//We now need to read the row and return it as a PHP object.
 				$dbd = glob($this->db."/tables/$table/".basename($row)."/*");
@@ -118,7 +137,7 @@ class JSONDatabase {
 					$k = basename($key);
 					$data[$i][$k] = file_get_contents($this->db."/tables/$table/".basename($row)."/$k");
 				}
-				$data[$i]['row_id'] = basename($i);
+				$data[$i]['row_id'] = basename($row);
 			} else {
 				//Might add something here for gc, but for now, do nothing and continue.
 			}
@@ -182,12 +201,14 @@ class JSONDatabase {
 		if (!file_exists($this->db."/tables/$table")){
 			return false;
 		} else {
-			return count(glob($this->db."/tables/$table" , GLOB_ONLYDIR));
+			return count(glob($this->db."/tables/$table" . '/*' , GLOB_ONLYDIR));
 		}
 	}
 	public function delete_row($table, $row){
 		//Duh
 		//Doesn't exactly work properly yet.
+		//Since this doesn't work properly YET - disabled for now. use insert to replace row data to blank out the row instead.
+		return false;
 		if (!file_exists($this->db."/tables/$table")) {
 			return false; //Folder not there.
 		} else if($table === null) {
